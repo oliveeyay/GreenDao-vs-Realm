@@ -1,0 +1,27 @@
+project(':GreenDaoGenerator') {
+    apply plugin: 'application'
+    apply plugin: 'java'
+
+    mainClassName = "com.db.oliviergoutay.greendao.DatabaseGenerator"
+    // edit output direction
+    def outputDir = "../app/src/main/java-gen"
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        compile 'org.freemarker:freemarker:2.3.14'
+        compile fileTree(dir: 'libs', include: ['*.jar'])
+        compile 'org.greenrobot:greendao-generator-encryption:2.2.0'
+    }
+
+    task createDocs {
+        def docs = file(outputDir)
+        docs.mkdirs()
+    }
+
+    run {
+        args outputDir
+    }
+}
