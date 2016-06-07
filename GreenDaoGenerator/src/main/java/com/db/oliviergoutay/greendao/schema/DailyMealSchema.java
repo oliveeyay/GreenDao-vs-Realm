@@ -53,13 +53,7 @@ public class DailyMealSchema extends AbstractSchema {
     public static final String MEAL_DAILYMEAL_ID = "dailyMealId";
     public static final String MEAL_PHOTO_ID = "photoId";
     public static final String MEAL_TO_ITEMS_RELATION_KEY = "items";
-
     public static final String MEAL_UPDATED_AT = "updatedAt";
-    //MealPhoto keys
-    public static final String SCHEMA_MEAL_PHOTO_KEY = "MealPhoto";
-    public static final String MEAL_PHOTO_FILENAME = "filename";
-    public static final String MEAL_PHOTO_DOWNLOAD_URL = "downloadUrl";
-    public static final String MEAL_PHOTO_TYPE = "photoType";
 
     //MealItem keys
     public static final String SCHEMA_MEAL_ITEM_KEY = "MealItem";
@@ -92,16 +86,6 @@ public class DailyMealSchema extends AbstractSchema {
         indexUniqueMealType.addProperty(mealOwnerEatenOnProperty);
         indexUniqueMealType.makeUnique();
         meal.addIndex(indexUniqueMealType);
-
-        //Create the meal photo entity
-        Entity mealPhoto = mSchema.addEntity(SCHEMA_MEAL_PHOTO_KEY);
-        mealPhoto.addIdProperty().autoincrement().primaryKey();
-        mealPhoto.addStringProperty(MEAL_PHOTO_FILENAME).unique();
-        mealPhoto.addStringProperty(MEAL_PHOTO_DOWNLOAD_URL).unique();
-        mealPhoto.addStringProperty(MEAL_PHOTO_TYPE);
-
-        //Set the property that the meal has photo
-        meal.addToOne(mealPhoto, mealPhotoProperty);
 
         //Set the property that the daily meal has meals
         ToMany dailyMealToMealsEatenOn = dailyMeal.addToMany(dailyMealEatenOn, meal, mealOwnerEatenOnProperty);

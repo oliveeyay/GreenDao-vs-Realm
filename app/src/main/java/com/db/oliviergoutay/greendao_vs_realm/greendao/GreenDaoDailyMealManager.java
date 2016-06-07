@@ -1,4 +1,4 @@
-package com.db.oliviergoutay.greendao_vs_realm.utils;
+package com.db.oliviergoutay.greendao_vs_realm.greendao;
 
 import android.app.Activity;
 import android.content.Context;
@@ -11,7 +11,6 @@ import com.db.oliviergoutay.greendao_vs_realm.schema.DaoSession;
 import com.db.oliviergoutay.greendao_vs_realm.schema.Meal;
 import com.db.oliviergoutay.greendao_vs_realm.schema.MealItem;
 import com.db.oliviergoutay.greendao_vs_realm.schema.MealItemDao;
-import com.db.oliviergoutay.greendao_vs_realm.schema.MealPhoto;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -71,7 +70,7 @@ public class GreenDaoDailyMealManager {
 
         if (dailyMeal != null && dailyMeal.getMeals() != null) {
             for (Meal meal : dailyMeal.getMeals()) {
-                updateMealDatabase(meal, dailyMeal, false);
+                updateMealDatabase(meal, dailyMeal);
             }
         }
         return idDailyMeal;
@@ -118,7 +117,7 @@ public class GreenDaoDailyMealManager {
      *
      * @param meal the {@link Meal we want to update}
      */
-    public Long updateMealDatabase(Meal meal, DailyMeal dailyMeal, boolean hasToDeletePhoto) {
+    public Long updateMealDatabase(Meal meal, DailyMeal dailyMeal) {
         Long idDailyMeal = mDao.getDailyMealDao().insertOrReplace(dailyMeal);
 
         //Set the eatenOn each time
@@ -126,19 +125,8 @@ public class GreenDaoDailyMealManager {
 
         //Meal id
         Long mealId = getMealIdFromDb(dailyMeal, meal);
-
-        //Photo handling
-        Long photoId = insertOrMergeMealPhoto(dailyMeal, meal, mealId);
-        MealPhoto mealPhoto = mDao.getMealPhotoDao().load(photoId);
-
-        meal.setMealPhoto(mealPhoto);
         Long idMeal = mDao.getMealDao().insertOrReplace(meal);
         Meal mealDb = mDao.getMealDao().load(idMeal);
-
-        //Delete all photos related to this meal
-        if (hasToDeletePhoto) {
-            deleteMealPhoto(idMeal);
-        }
 
         try {
             List<MealItem> currentMealItems = mealDb.getItems();
@@ -193,59 +181,15 @@ public class GreenDaoDailyMealManager {
         return null;
     }
 
-    /**
-     * Insert a new {@link MealPhoto} in database or merge it with a current {@link MealPhoto}
-     *
-     * @param dailyMeal The current {@link DailyMeal} db object containing the current {@link Meal}
-     * @param meal      The {@link Meal} we want to merge the {@link MealPhoto} with the database object, or just insert as a new object
-     * @param mealId    The mealId for which we want to insert this new {@link MealPhoto}
-     * @return
-     */
-    private Long insertOrMergeMealPhoto(DailyMeal dailyMeal, Meal meal, Long mealId) {
-        if (dailyMeal != null && meal != null && mealId != null) {
-            dailyMeal.resetMeals();
-
-            MealPhoto dbPhoto = meal.getMealPhoto();
-            if (dbPhoto != null) {
-                if (meal.getMealPhoto() == null) {
-                    meal.setMealPhoto(dbPhoto);
-                } else if (dbPhoto.getDownloadUrl() != null && meal.getMealPhoto().getDownloadUrl() == null) {
-                    meal.getMealPhoto().setDownloadUrl(dbPhoto.getDownloadUrl());
-                }
-            }
-
-            if (dbPhoto != null) {
-                return mDao.getMealPhotoDao().insertOrReplace(dbPhoto);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Deletes all the {@link MealPhoto}'s associated to a particular
-     * {@link Meal}
-     *
-     * @param mealId The database id of the meal
-     */
-    private void deleteMealPhoto(long mealId) {
-        Meal meal = mDao.getMealDao().load(mealId);
-        if (meal != null) {
-            MealPhoto photo = meal.getMealPhoto();
-            if (photo != null) {
-                mDao.getMealPhotoDao().deleteByKey(photo.getId());
-                meal.setPhotoId(null);
-                meal.setMealPhoto(null);
-                mDao.getMealDao().insertOrReplace(meal);
-            }
-        }
-    }
-
     public List<Meal> setEatenOnDatesToMealApi(List<DailyMeal> dailyMeals) {
         if (dailyMeals == null) {
             return null;
         }
         List<Meal> mealApiList = new ArrayList<>(dailyMeals.size());
         for (DailyMeal dailyMeal : dailyMeals) {
+            for (Meal meal : dailyMeal.getMeals()) {
+                meal.setEatenOn(dailyMeal.getEatenOn());
+            }
             mealApiList.addAll(dailyMeal.getMeals());
         }
         return mealApiList;

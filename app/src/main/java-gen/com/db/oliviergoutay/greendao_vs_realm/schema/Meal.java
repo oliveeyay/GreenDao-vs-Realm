@@ -25,9 +25,6 @@ public class Meal {
     /** Used for active entity operations. */
     private transient MealDao myDao;
 
-    private MealPhoto mealPhoto;
-    private Long mealPhoto__resolvedKey;
-
     private List<MealItem> items;
 
     public Meal() {
@@ -116,31 +113,6 @@ public class Meal {
 
     public void setPhotoId(Long photoId) {
         this.photoId = photoId;
-    }
-
-    /** To-one relationship, resolved on first access. */
-    public MealPhoto getMealPhoto() {
-        Long __key = this.photoId;
-        if (mealPhoto__resolvedKey == null || !mealPhoto__resolvedKey.equals(__key)) {
-            if (daoSession == null) {
-                throw new DaoException("Entity is detached from DAO context");
-            }
-            MealPhotoDao targetDao = daoSession.getMealPhotoDao();
-            MealPhoto mealPhotoNew = targetDao.load(__key);
-            synchronized (this) {
-                mealPhoto = mealPhotoNew;
-            	mealPhoto__resolvedKey = __key;
-            }
-        }
-        return mealPhoto;
-    }
-
-    public void setMealPhoto(MealPhoto mealPhoto) {
-        synchronized (this) {
-            this.mealPhoto = mealPhoto;
-            photoId = mealPhoto == null ? null : mealPhoto.getId();
-            mealPhoto__resolvedKey = photoId;
-        }
     }
 
     /** To-many relationship, resolved on first access (and after reset). Changes to to-many relations are not persisted, make changes to the target entity. */
