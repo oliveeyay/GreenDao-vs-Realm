@@ -4,7 +4,7 @@ project(':GreenDaoGenerator') {
 
     mainClassName = "com.db.oliviergoutay.greendao.DatabaseGenerator"
     // edit output direction
-    def outputDir = "../app/src/main/java-gen"
+    def outputDir = "../GreenDao-app/src/main/java-gen"
 
     repositories {
         mavenCentral()
