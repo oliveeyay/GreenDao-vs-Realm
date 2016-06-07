@@ -1,5 +1,6 @@
 package com.db.oliviergoutay.greendao_vs_realm;
 
+import android.content.Context;
 import android.test.suitebuilder.annotation.MediumTest;
 import android.util.Log;
 
@@ -21,29 +22,64 @@ public class GreenDaoPerformanceTest extends AbstractAndroidTestCase {
     private static final String TAG = "GreenDaoPerformanceTest";
 
     /**
-     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager}
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager#queryDailyMeal(long)}
+     * and {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager#queryAllDailyMealsOrdered(boolean)}
+     */
+    @MediumTest
+    public void testQueryDatabasePerformance() throws InterruptedException {
+        //Add stuff in db
+        testUpdateDatabaseListPerformance();
+
+        //Query one object
+        long eatenOn = greenDaoDailyMealManager.queryAllDailyMealsOrdered(true).get(0).getEatenOn();
+        long start = System.currentTimeMillis();
+        assertNotNull(greenDaoDailyMealManager.queryDailyMeal(eatenOn));
+        long end = System.currentTimeMillis();
+        Log.i(TAG, "Query of one DailyMealRealm took : " + (end - start) + " milliseconds");
+
+        //Query all objects (not ordered)
+        start = System.currentTimeMillis();
+        assertEquals(365, greenDaoDailyMealManager.queryAllDailyMealsOrdered(false).size());
+        end = System.currentTimeMillis();
+        Log.i(TAG, "Query of all the DailyMealRealm (not ordered) took : " + (end - start) + " milliseconds");
+
+        //Query all objects (ordered)
+        start = System.currentTimeMillis();
+        assertEquals(365, greenDaoDailyMealManager.queryAllDailyMealsOrdered(true).size());
+        end = System.currentTimeMillis();
+        Log.i(TAG, "Query of all the DailyMealRealm (ordered) took : " + (end - start) + " milliseconds");
+    }
+
+    /**
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager#updateDatabase(DailyMealApi)}
+     */
+    @MediumTest
+    public void testUpdateDatabasePerformance() throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        greenDaoDailyMealManager.setTestCountDownLatch(countDownLatch);
+        long start = System.currentTimeMillis();
+        greenDaoDailyMealManager.updateDatabase(getMockDailyMealForDate(new Date()));
+        countDownLatch.await();
+        long end = System.currentTimeMillis();
+
+        Log.i(TAG, "Insert of 1 DailyMealApi took : " + (end - start) + " milliseconds");
+        //Check time is less than 3000 millis
+        assertTrue(3000 > end - start);
+
+        //Check all were inserted
+        assertEquals(1, dao.getDailyMealDao().loadAll().size());
+        assertEquals(4, dao.getMealDao().loadAll().size());
+    }
+
+    /**
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager#updateDatabase(Context, List)}
      */
     @MediumTest
     public void testUpdateDatabaseListPerformance() throws InterruptedException {
         List<DailyMealApi> mList = new ArrayList<>();
         Date date = new Date();
         for (int i = 0; i < 365; i++) {
-            DailyMealApi dailyMealApi = new DailyMealApi(date);
-
-            ArrayList<String> items = new ArrayList<>(Arrays.asList("test1", "test2", "test3"));
-
-            //List<String> items, Integer size, Integer healthiness, String mealType, String photoUrl, Long eatenOn, MealPhotoApi mealPhotoApi, Long updatedAt
-            MealApi breakfast = new MealApi(items, 0, 0, MealApi.MealType.BREAKFAST, "test", date.getTime(), 0l);
-            MealApi lunch = new MealApi(items, 0, 0, MealApi.MealType.LUNCH, "test", date.getTime(), 0l);
-            MealApi dinner = new MealApi(items, 0, 0, MealApi.MealType.DINNER, "test", date.getTime(), 0l);
-            MealApi snack = new MealApi(items, 0, 0, MealApi.MealType.SNACK, "test", date.getTime(), 0l);
-
-            dailyMealApi.setBreakfast(breakfast);
-            dailyMealApi.setLunch(lunch);
-            dailyMealApi.setDinner(dinner);
-            dailyMealApi.setSnack(snack);
-            mList.add(dailyMealApi);
-
+            mList.add(getMockDailyMealForDate(date));
             date = Utilities.getYesterday(date);
         }
 
@@ -54,13 +90,35 @@ public class GreenDaoPerformanceTest extends AbstractAndroidTestCase {
         countDownLatch.await();
         long end = System.currentTimeMillis();
 
-        Log.i(TAG, "mass insert of 365 DailyMealApi took : " + (end - start) + " milliseconds");
+        Log.i(TAG, "Mass insert of 365 DailyMealApi took : " + (end - start) + " milliseconds");
         //Check time is less than 3000 millis
         assertTrue(3000 > end - start);
 
         //Check all were inserted
         assertEquals(365, dao.getDailyMealDao().loadAll().size());
         assertEquals(365 * 4, dao.getMealDao().loadAll().size());
+    }
+
+    /**
+     * Creates a mocked {@link DailyMealApi} for this specific date
+     */
+    private DailyMealApi getMockDailyMealForDate(Date date) {
+        DailyMealApi dailyMealApi = new DailyMealApi(date);
+
+        ArrayList<String> items = new ArrayList<>(Arrays.asList("test1", "test2", "test3"));
+
+        //List<String> items, Integer size, Integer healthiness, String mealType, String photoUrl, Long eatenOn, MealPhotoApi mealPhotoApi, Long updatedAt
+        MealApi breakfast = new MealApi(items, 0, 0, MealApi.MealType.BREAKFAST, "test", date.getTime(), 0l);
+        MealApi lunch = new MealApi(items, 0, 0, MealApi.MealType.LUNCH, "test", date.getTime(), 0l);
+        MealApi dinner = new MealApi(items, 0, 0, MealApi.MealType.DINNER, "test", date.getTime(), 0l);
+        MealApi snack = new MealApi(items, 0, 0, MealApi.MealType.SNACK, "test", date.getTime(), 0l);
+
+        dailyMealApi.setBreakfast(breakfast);
+        dailyMealApi.setLunch(lunch);
+        dailyMealApi.setDinner(dinner);
+        dailyMealApi.setSnack(snack);
+
+        return dailyMealApi;
     }
 
 }

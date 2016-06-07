@@ -69,6 +69,26 @@ public class GreenDaoDailyMealManager {
     }
 
     /**
+     * Returns a {@link DailyMeal} thanks to its primary key
+     */
+    public DailyMeal queryDailyMeal(long date) {
+        return mDao.getDailyMealDao().queryBuilder().where(DailyMealDao.Properties.EatenOn.eq(date)).unique();
+    }
+
+    /**
+     * Returns a list of {@link DailyMeal} ordered by date
+     */
+    public List<DailyMeal> queryAllDailyMealsOrdered(boolean order) {
+        QueryBuilder<DailyMeal> queryBuilder = mDao.getDailyMealDao().queryBuilder();
+
+        if (order) {
+            queryBuilder.orderDesc(DailyMealDao.Properties.EatenOn);
+        }
+
+        return queryBuilder.list();
+    }
+
+    /**
      * Update a {@link DailyMealApi} and all of his
      * {@link MealApi}. Use only when you want to update all, otherwise
      * use {@link #updateMealDatabase(MealApi, DailyMeal, boolean)}
@@ -85,6 +105,11 @@ public class GreenDaoDailyMealManager {
                 updateMealDatabase(mealApi, dailyMeal, false);
             }
         }
+
+        if (mTestCountDownLatch != null && mTestCountDownLatch.getCount() > 0) {
+            mTestCountDownLatch.countDown();
+        }
+
         return idDailyMeal;
     }
 
@@ -304,7 +329,7 @@ public class GreenDaoDailyMealManager {
      * Set the test {@link CountDownLatch}
      */
     public void setTestCountDownLatch(CountDownLatch testCountDownLatch) {
-            this.mTestCountDownLatch = testCountDownLatch;
+        this.mTestCountDownLatch = testCountDownLatch;
     }
 
 }

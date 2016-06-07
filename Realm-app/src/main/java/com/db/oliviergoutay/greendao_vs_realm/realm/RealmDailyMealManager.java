@@ -1,8 +1,6 @@
 package com.db.oliviergoutay.greendao_vs_realm.realm;
 
-import android.app.Activity;
 import android.content.Context;
-import android.os.AsyncTask;
 
 import com.db.oliviergoutay.greendao_vs_realm.DbApp;
 
@@ -11,6 +9,8 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import io.realm.Realm;
+import io.realm.RealmQuery;
+import io.realm.Sort;
 
 /**
  * The managing class for the persistence and synchronization of daily meals.
@@ -55,6 +55,23 @@ public class RealmDailyMealManager {
     }
 
     /**
+     * Returns a {@link DailyMealRealm} thanks to its primary key
+     */
+    public DailyMealRealm queryDailyMeal(long date) {
+        RealmQuery<DailyMealRealm> query = DbApp.getRealm().where(DailyMealRealm.class);
+        query.equalTo("eatenOn", date);
+        return query.findFirst();
+    }
+
+    /**
+     * Returns a list of {@link DailyMealRealm} ordered by date
+     */
+    public List<DailyMealRealm> queryAllDailyMealsOrdered(boolean order) {
+        RealmQuery<DailyMealRealm> query = DbApp.getRealm().where(DailyMealRealm.class);
+        return order ? query.findAll() : query.findAll().sort("eatenOn", Sort.DESCENDING);
+    }
+
+    /**
      * Update a {@link DailyMealRealm} and all of his
      * {@link MealRealm}.
      *
@@ -68,6 +85,10 @@ public class RealmDailyMealManager {
             realm.beginTransaction();
             realm.copyToRealmOrUpdate(dailyMealRealm);
             realm.commitTransaction();
+
+            if (mTestCountDownLatch != null && mTestCountDownLatch.getCount() > 0) {
+                mTestCountDownLatch.countDown();
+            }
         }
     }
 
@@ -80,34 +101,16 @@ public class RealmDailyMealManager {
             return;
         }
 
-        AsyncTask.THREAD_POOL_EXECUTOR.execute(new Runnable() {
-            @Override
-            public void run() {
-                //Add eatenOn to meal apis and hold
-                //Insert all daily mealRealms
-                if (dailyMealRealms != null) {
-                    setEatenOnDatesToMeal(dailyMealRealms);
+        setEatenOnDatesToMeal(dailyMealRealms);
 
-                    Realm realm = DbApp.getRealm();
-                    realm.beginTransaction();
-                    realm.copyToRealmOrUpdate(dailyMealRealms);
-                    realm.commitTransaction();
+        final Realm realm = DbApp.getRealm();
+        realm.beginTransaction();
+        realm.copyToRealmOrUpdate(dailyMealRealms);
+        realm.commitTransaction();
 
-                    if (dailyMealRealms.size() > 1 && context instanceof Activity) {
-                        ((Activity) context).runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                //TODO finish
-                            }
-                        });
-                    }
-
-                    if (mTestCountDownLatch != null && mTestCountDownLatch.getCount() > 0) {
-                        mTestCountDownLatch.countDown();
-                    }
-                }
-            }
-        });
+        if (mTestCountDownLatch != null && mTestCountDownLatch.getCount() > 0) {
+            mTestCountDownLatch.countDown();
+        }
     }
 
     public void setEatenOnDatesToMeal(List<DailyMealRealm> dailyMealRealms) {

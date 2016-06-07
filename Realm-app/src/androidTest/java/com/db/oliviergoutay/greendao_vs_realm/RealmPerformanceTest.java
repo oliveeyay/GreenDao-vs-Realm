@@ -1,5 +1,6 @@
 package com.db.oliviergoutay.greendao_vs_realm;
 
+import android.content.Context;
 import android.test.suitebuilder.annotation.MediumTest;
 import android.util.Log;
 
@@ -23,34 +24,67 @@ public class RealmPerformanceTest extends AbstractAndroidTestCase {
     private static final String TAG = "RealmPerformanceTest";
 
     /**
-     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager}
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager#queryDailyMeal(long)}
+     * and {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager#queryAllDailyMealsOrdered(boolean)}
+     */
+    @MediumTest
+    public void testQueryDatabasePerformance() throws InterruptedException {
+        //Add stuff in db
+        testUpdateDatabaseListPerformance();
+
+        //Query one object
+        long eatenOn = realmDailyMealManager.queryAllDailyMealsOrdered(true).get(0).getEatenOn();
+        long start = System.currentTimeMillis();
+        assertNotNull(realmDailyMealManager.queryDailyMeal(eatenOn));
+        long end = System.currentTimeMillis();
+        Log.i(TAG, "Query of one DailyMealRealm took : " + (end - start) + " milliseconds");
+
+        //Query all objects (not ordered)
+        start = System.currentTimeMillis();
+        assertEquals(365, realmDailyMealManager.queryAllDailyMealsOrdered(false).size());
+        end = System.currentTimeMillis();
+        Log.i(TAG, "Query of all the DailyMealRealm (not ordered) took : " + (end - start) + " milliseconds");
+
+        //Query all objects (ordered)
+        start = System.currentTimeMillis();
+        assertEquals(365, realmDailyMealManager.queryAllDailyMealsOrdered(true).size());
+        end = System.currentTimeMillis();
+        Log.i(TAG, "Query of all the DailyMealRealm (ordered) took : " + (end - start) + " milliseconds");
+    }
+
+    /**
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager#updateDatabase(DailyMealRealm)}
+     */
+    @MediumTest
+    public void testUpdateDatabasePerformance() throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(1);
+        realmDailyMealManager.setTestCountDownLatch(countDownLatch);
+        long start = System.currentTimeMillis();
+        realmDailyMealManager.updateDatabase(getMockDailyMealForDate(new Date()));
+        countDownLatch.await();
+        long end = System.currentTimeMillis();
+
+        Log.i(TAG, "Insert of 1 DailyMealRealm took : " + (end - start) + " milliseconds");
+        //Check time is less than 3000 millis
+        assertTrue(3000 > end - start);
+
+        //Check all were inserted
+        assertEquals(1, DbApp.getRealm().where(DailyMealRealm.class).count());
+        assertEquals(4, DbApp.getRealm().where(MealRealm.class).count());
+        assertEquals(3, DbApp.getRealm().where(MealItemRealm.class).count());
+    }
+
+    /**
+     * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager#updateDatabase(Context, List)}
      */
     @MediumTest
     public void testUpdateDatabaseListPerformance() throws InterruptedException {
         List<DailyMealRealm> mList = new ArrayList<>();
         Date date = new Date();
-        long j = 0;
         for (int i = 0; i < 365; i++) {
-            //long eatenOn, Integer glassesWater, Long updatedAt, String reflection, RealmList<MealRealm> meals
-            DailyMealRealm dailyMealRealm = new DailyMealRealm(date.getTime(), 0, 0L, "reflection", null);
-
-            RealmList<MealItemRealm> items = new RealmList<>();
-            items.add(new MealItemRealm(date.getTime() + "item 1", "item 1"));
-            items.add(new MealItemRealm(date.getTime() + "item 2", "item 2"));
-            items.add(new MealItemRealm(date.getTime() + "item 3", "item 3"));
-
-            //String size, String mealType, Long updatedAt, Integer healthiness, String photoUrl, Long eatenOn, RealmList<MealItemRealm> items
-            RealmList<MealRealm> mealRealms = new RealmList<>();
-            mealRealms.add(new MealRealm(date.getTime() + "BREAKFAST", "size", "BREAKFAST", 0L, 0, "photoUrl", date.getTime(), items));
-            mealRealms.add(new MealRealm(date.getTime() + "LUNCH", "size", "LUNCH", 0L, 0, "photoUrl", date.getTime(), items));
-            mealRealms.add(new MealRealm(date.getTime() + "DINNER", "size", "DINNER", 0L, 0, "photoUrl", date.getTime(), items));
-            mealRealms.add(new MealRealm(date.getTime() + "SNACK", "size", "SNACK", 0L, 0, "photoUrl", date.getTime(), items));
-
-            dailyMealRealm.setMeals(mealRealms);
-            mList.add(dailyMealRealm);
+            mList.add(getMockDailyMealForDate(date));
 
             date = getYesterday(date);
-            j += 4;
         }
 
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -68,6 +102,27 @@ public class RealmPerformanceTest extends AbstractAndroidTestCase {
         assertEquals(365, DbApp.getRealm().where(DailyMealRealm.class).count());
         assertEquals(365 * 4, DbApp.getRealm().where(MealRealm.class).count());
         assertEquals(365 * 3, DbApp.getRealm().where(MealItemRealm.class).count());
+    }
+
+    /**
+     * Creates a mocked {@link DailyMealRealm} for this specific date
+     */
+    private DailyMealRealm getMockDailyMealForDate(Date date) {
+        DailyMealRealm dailyMealRealm = new DailyMealRealm(date.getTime(), 0, 0L, "reflection", null);
+
+        RealmList<MealItemRealm> items = new RealmList<>();
+        items.add(new MealItemRealm(date.getTime() + "item 1", "item 1"));
+        items.add(new MealItemRealm(date.getTime() + "item 2", "item 2"));
+        items.add(new MealItemRealm(date.getTime() + "item 3", "item 3"));
+
+        RealmList<MealRealm> mealRealms = new RealmList<>();
+        mealRealms.add(new MealRealm(date.getTime() + "BREAKFAST", "size", "BREAKFAST", 0L, 0, "photoUrl", date.getTime(), items));
+        mealRealms.add(new MealRealm(date.getTime() + "LUNCH", "size", "LUNCH", 0L, 0, "photoUrl", date.getTime(), items));
+        mealRealms.add(new MealRealm(date.getTime() + "DINNER", "size", "DINNER", 0L, 0, "photoUrl", date.getTime(), items));
+        mealRealms.add(new MealRealm(date.getTime() + "SNACK", "size", "SNACK", 0L, 0, "photoUrl", date.getTime(), items));
+        dailyMealRealm.setMeals(mealRealms);
+
+        return dailyMealRealm;
     }
 
     /**
