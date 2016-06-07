@@ -1,10 +1,14 @@
 package com.db.oliviergoutay.greendao_vs_realm;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.test.AndroidTestCase;
 import android.util.Log;
 
 import com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager;
+
+import java.io.File;
 
 
 /**
@@ -60,5 +64,28 @@ public class AbstractAndroidTestCase extends AndroidTestCase {
             }
             createApplication();
         }
+    }
+
+    /**
+     * Returns the app file path
+     */
+    public String getFileDir() {
+        PackageManager m = getContext().getPackageManager();
+        String s = getContext().getPackageName();
+        try {
+            PackageInfo p = m.getPackageInfo(s, 0);
+            s = p.applicationInfo.dataDir;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w("yourtag", "Error Package name not found ", e);
+        }
+
+        return s;
+    }
+
+    /**
+     * Returns the length of a file (its size)
+     */
+    public static long getFileSize(File f) {
+        return f.length();
     }
 }

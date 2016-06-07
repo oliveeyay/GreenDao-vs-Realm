@@ -8,6 +8,7 @@ import com.db.oliviergoutay.greendao_vs_realm.greendao.DailyMealApi;
 import com.db.oliviergoutay.greendao_vs_realm.greendao.MealApi;
 import com.db.oliviergoutay.greendao_vs_realm.utils.Utilities;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -20,6 +21,19 @@ import java.util.concurrent.CountDownLatch;
 public class GreenDaoPerformanceTest extends AbstractAndroidTestCase {
 
     private static final String TAG = "GreenDaoPerformanceTest";
+
+    /**
+     * Test the size of the database
+     */
+    @MediumTest
+    public void testSizeDatabase() throws InterruptedException {
+        //Add stuff in db
+        testUpdateDatabaseListPerformance();
+
+        //Show size database
+        File db = new File(getFileDir() + "/databases/greendao_encrypted.db");
+        Log.i(TAG, "Size of the DailyMeal GreenDao database is : " + getFileSize(db) / 1024 + " KB");
+    }
 
     /**
      * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.greendao.GreenDaoDailyMealManager#queryDailyMeal(long)}
@@ -35,19 +49,19 @@ public class GreenDaoPerformanceTest extends AbstractAndroidTestCase {
         long start = System.currentTimeMillis();
         assertNotNull(greenDaoDailyMealManager.queryDailyMeal(eatenOn));
         long end = System.currentTimeMillis();
-        Log.i(TAG, "Query of one DailyMealRealm took : " + (end - start) + " milliseconds");
+        Log.i(TAG, "Query of one DailyMealApi took : " + (end - start) + " milliseconds");
 
         //Query all objects (not ordered)
         start = System.currentTimeMillis();
         assertEquals(365, greenDaoDailyMealManager.queryAllDailyMealsOrdered(false).size());
         end = System.currentTimeMillis();
-        Log.i(TAG, "Query of all the DailyMealRealm (not ordered) took : " + (end - start) + " milliseconds");
+        Log.i(TAG, "Query of all the DailyMealApi (not ordered) took : " + (end - start) + " milliseconds");
 
         //Query all objects (ordered)
         start = System.currentTimeMillis();
         assertEquals(365, greenDaoDailyMealManager.queryAllDailyMealsOrdered(true).size());
         end = System.currentTimeMillis();
-        Log.i(TAG, "Query of all the DailyMealRealm (ordered) took : " + (end - start) + " milliseconds");
+        Log.i(TAG, "Query of all the DailyMealApi (ordered) took : " + (end - start) + " milliseconds");
     }
 
     /**

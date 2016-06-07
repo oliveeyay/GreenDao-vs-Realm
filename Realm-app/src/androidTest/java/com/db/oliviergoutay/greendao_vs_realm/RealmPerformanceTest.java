@@ -8,12 +8,14 @@ import com.db.oliviergoutay.greendao_vs_realm.realm.DailyMealRealm;
 import com.db.oliviergoutay.greendao_vs_realm.realm.MealItemRealm;
 import com.db.oliviergoutay.greendao_vs_realm.realm.MealRealm;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import io.realm.Realm;
 import io.realm.RealmList;
 
 /**
@@ -22,6 +24,24 @@ import io.realm.RealmList;
 public class RealmPerformanceTest extends AbstractAndroidTestCase {
 
     private static final String TAG = "RealmPerformanceTest";
+
+    /**
+     * Test the size of the database
+     */
+    @MediumTest
+    public void testSizeDatabase() throws InterruptedException {
+        //Add stuff in db
+        testUpdateDatabaseListPerformance();
+        //Delete to match greendao
+        Realm realm = DbApp.getRealm();
+        realm.beginTransaction();
+        realm.delete(MealItemRealm.class);
+        realm.commitTransaction();
+
+        //Show size database
+        File db = new File(getFileDir() + "/files/default.realm");
+        Log.i(TAG, "Size of the DailyMeal Realm database is : " + getFileSize(db) / 1024 + " KB");
+    }
 
     /**
      * Tests performance of {@link com.db.oliviergoutay.greendao_vs_realm.realm.RealmDailyMealManager#queryDailyMeal(long)}
