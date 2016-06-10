@@ -114,7 +114,7 @@ public class RealmPerformanceTest extends AbstractAndroidTestCase {
         countDownLatch.await();
         long end = System.currentTimeMillis();
 
-        Log.i(TAG, "mass insert of 365 DailyMealRealm took : " + (end - start) + " milliseconds");
+        Log.i(TAG, "Mass insert of 365 DailyMealRealm took : " + (end - start) + " milliseconds");
         //Check time is less than 3000 millis
         assertTrue(3000 > end - start);
 
